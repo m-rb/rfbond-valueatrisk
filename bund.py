@@ -47,7 +47,7 @@ spotCurve = ql.ZeroCurve(spotDates, spotRates, dayCount, calendar, interpolation
 spotCurveHandle = ql.YieldTermStructureHandle(spotCurve)
 
 issueDate = ql.Date(22, 6, 2010)
-maturityDate = ql.Date(15, 5, 2023)
+maturityDate = ql.Date(15, 5, 2049)
 tenor = ql.Period(ql.Annual)
 calendar = ql.Germany()
 bussinessConvention = ql.Following
@@ -60,7 +60,7 @@ dayCount = ql.ActualActual()
 couponRate = .0150
 coupons = [couponRate]
 
-settlementDays = 0
+settlementDays = 2
 faceValue = 1000000
 fixedRateBond = ql.FixedRateBond(settlementDays, faceValue, schedule, coupons, dayCount)
 
@@ -87,18 +87,17 @@ new_curve = ql.SpreadedLinearZeroInterpolatedTermStructure(ql.YieldTermStructure
 discount_handle.linkTo(new_curve)
 
 basis_point = 1.0e-4
-df = []
+key_risk = []
 for i in range(1, len(spreads)):
     ref = 0.0
-    spreads[i].setValue(ref + basis_point)
-    df.append(original_npv - fixedRateBond.NPV())
+    spreads[i].setValue(ref - basis_point)
+    print(fixedRateBond.NPV())
+    key_risk.append(original_npv - fixedRateBond.NPV())
     spreads[i].setValue(ref)
 
-pv01 = pd.DataFrame(- pd.to_numeric(df), index=bp.columns) #(-) pv01!
+pv01 = pd.DataFrame(-pd.to_numeric(key_risk), index=bp.columns) #(-)pv01
 
 confidence_interval = 0.99
 z_score = norm.ppf(confidence_interval)
 
-bond_var = z_score * np.sqrt(np.matmul(pv01.T.values,
-                                       np.matmul(covariance.values,
-                                                 pv01.values)))
+bond_var = z_score * np.sqrt(pv01.T @ covariance @ pv01)
